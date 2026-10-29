@@ -1,18 +1,16 @@
-# Simple Mineflayer bot launcher for an offline-mode Paper Minecraft server.
-# Edit the config at the top to match your server before running.
+// Mineflayer bot launcher for an offline-mode Paper Minecraft server.
+// Update the config below to match your server before starting the bots.
 
 const mineflayer = require('mineflayer');
 
-// Configuration
 const HOST = '[server address]';
-const PORT = [port];
-const VERSION = [Minecraft version or undefined];
+const PORT = 25565;
+const VERSION = undefined; // or set a version string such as '1.20.4'
 const NAMES = ['Bot_Alpha', 'Bot_Beta', 'Bot_Gamma'];
 const AUTH = 'offline';
-const STAGGER_MS = 6000; // delay between bot logins to avoid throttling
-const RECONNECT_MS = 15000; // wait before reconnect after disconnect
+const STAGGER_MS = 6000; // stagger logins to avoid connection throttling
+const RECONNECT_MS = 15000; // reconnect after disconnect
 
-// Create a bot instance.
 function makeBot(name) {
   const bot = mineflayer.createBot({
     host: HOST,
@@ -20,7 +18,6 @@ function makeBot(name) {
     username: name,
     auth: AUTH,
     version: VERSION,
-    // offline mode does not need password or session handling
   });
 
   bot.on('login', () => {
@@ -32,40 +29,39 @@ function makeBot(name) {
   });
 
   bot.on('kicked', (reason, loggedIn) => {
-    console.log(`[${name}] Kicked:`, reason, 'loggedIn=', loggedIn);
+    console.log(`[${name}] Kicked: ${reason || 'unknown reason'} (loggedIn=${loggedIn})`);
   });
 
   bot.on('error', (err) => {
-    console.log(`[${name}] Error:`, err.message || err);
+    console.log(`[${name}] Error: ${err && err.message ? err.message : err}`);
   });
 
   bot.on('end', (reason) => {
     console.log(`[${name}] Disconnected: ${reason || 'unknown reason'}`);
     setTimeout(() => {
-      console.log(`[${name}] Attempting reconnect...`);
+      console.log(`[${name}] Reconnecting in ${RECONNECT_MS / 1000} seconds...`);
       makeBot(name);
     }, RECONNECT_MS);
   });
 
   bot.on('chat', (username, message) => {
-    // Bot replies when a player says "<botname> hi"
-    const target = name;
-    if (message && message.toLowerCase() === `${target.toLowerCase()} hi`) {
+    const target = name.toLowerCase();
+    if (message && message.toLowerCase() === `${target} hi`) {
       bot.chat(`Hello ${username}!`);
-      console.log(`[${name}] Replied to ${username}`);
+      console.log(`[${name}] Replied to ${username}: Hello ${username}!`);
     }
   });
 
   return bot;
 }
 
-// Start bots with a staggered login schedule.
 NAMES.forEach((name, index) => {
   setTimeout(() => {
+    console.log(`[${name}] Connecting...`);
     makeBot(name);
   }, index * STAGGER_MS);
 });
 
 console.log('Starting Mineflayer bots...');
-console.log('Server:', HOST, PORT);
-console.log('Bots:', NAMES.join(', '));
+console.log(`Server: ${HOST}:${PORT}`);
+console.log(`Bots: ${NAMES.join(', ')}`);

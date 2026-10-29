@@ -1,6 +1,6 @@
 # mc-bots
 
-A simple Node.js project that launches multiple Mineflayer bots against an offline-mode Paper Minecraft server.
+A simple Node.js project for running multiple Mineflayer bots on an offline-mode Paper Minecraft server.
 
 ## Setup
 
@@ -8,21 +8,21 @@ A simple Node.js project that launches multiple Mineflayer bots against an offli
    ```bash
    npm install
    ```
-2. Edit the config at the top of `bots.js`:
+2. Edit the values at the top of `bots.js`:
    - `HOST`
    - `PORT`
-   - `VERSION` (or leave as `undefined` for auto-detect)
+   - `VERSION` (or leave as `undefined` to auto-detect)
    - `NAMES`
 3. Start the bots:
    ```bash
    npm start
    ```
 
-## Notes
+## Behavior
 
-- The bots use offline mode (`auth: 'offline'`).
-- Logins are staggered by 6 seconds to help avoid connection throttling.
-- Each bot reconnects 15 seconds after disconnect.
-- Bots respond with `Hello <player>!` when someone says `<botname> hi`.
+- All bots use offline authentication.
+- Bot logins are staggered by 6 seconds to avoid connection throttling.
+- Each bot reconnects 15 seconds after a disconnect.
+- If a player says `<botname> hi`, the bot replies with `Hello <player>!`.
 
-This repository intentionally keeps secrets out of source control.
+This repository does not include tokens or secrets.
