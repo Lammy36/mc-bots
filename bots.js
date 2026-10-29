@@ -31,11 +31,19 @@ const FOOD_ITEMS = [
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+process.on('unhandledRejection', (err) => {
+  console.log('[unhandledRejection]', err && err.stack ? err.stack : err);
+});
+
+process.on('uncaughtException', (err) => {
+  console.log('[uncaughtException]', err && err.stack ? err.stack : err);
+});
+
 function getFoodItem(bot) {
   return bot.inventory.items().find((item) => FOOD_ITEMS.includes(item.name));
 }
 
-function eatFoodIfNeeded(bot) {
+async function eatFoodIfNeeded(bot) {
   if (bot.food >= 14) return;
 
   const foodItem = getFoodItem(bot);
@@ -45,8 +53,8 @@ function eatFoodIfNeeded(bot) {
   }
 
   try {
-    bot.equip(foodItem, 'hand');
-    bot.consume();
+    await bot.equip(foodItem, 'hand');
+    await bot.consume();
     console.log(`[${bot.username}] Ate ${foodItem.name} to recover hunger.`);
   } catch (err) {
     console.log(`[${bot.username}] Food use failed: ${err && err.message ? err.message : err}`);
@@ -124,14 +132,13 @@ async function lookAtWater(bot, waterPos) {
 }
 
 async function fishForever(bot, name) {
-  while (true) {
+  while (bot.alive) {
     try {
-      eatFoodIfNeeded(bot);
+      await eatFoodIfNeeded(bot);
 
       if (!bot.heldItem || bot.heldItem.name !== 'fishing_rod') {
         const hasRod = await equipFishingRod(bot);
         if (!hasRod) {
-          bot.chat('No rod! Retry in 30s.');
           console.log(`[${name}] No fishing rod available; retrying in ${RETRY_MS / 1000}s.`);
           await wait(RETRY_MS);
           continue;
@@ -142,7 +149,6 @@ async function fishForever(bot, name) {
 
       const water = findNearestWater(bot);
       if (!water) {
-        bot.chat('No water nearby! Retry in 30s.');
         console.log(`[${name}] No water within 6 blocks; retrying in ${RETRY_MS / 1000}s.`);
         await wait(RETRY_MS);
         continue;
@@ -151,9 +157,9 @@ async function fishForever(bot, name) {
       await lookAtWater(bot, water);
 
       try {
-        bot.fish();
+        await bot.fish();
       } catch (err) {
-        console.log(`[${name}] bot.fish() threw: ${err && err.message ? err.message : err}`);
+        console.log(`[${name}] bot.fish() error: ${err && err.message ? err.message : err}`);
         await wait(1000);
         continue;
       }
@@ -164,7 +170,6 @@ async function fishForever(bot, name) {
           console.log(`[${name}] Rod broke; re-equipping another rod.`);
           await equipFishingRod(bot);
         } else {
-          bot.chat('Rod broke! Retry in 30s.');
           console.log(`[${name}] Rod broke and no replacement found; waiting ${RETRY_MS / 1000}s.`);
           await wait(RETRY_MS);
         }
@@ -187,6 +192,8 @@ function makeBot(name) {
     version: VERSION,
   });
 
+  bot.alive = true;
+  bot.fishStarted = false;
   bot.loadPlugin(pathfinder);
 
   bot.on('login', () => {
@@ -195,7 +202,10 @@ function makeBot(name) {
 
   bot.on('spawn', () => {
     console.log(`[${name}] Spawned successfully`);
-    fishForever(bot, name);
+    if (!bot.fishStarted) {
+      bot.fishStarted = true;
+      fishForever(bot, name);
+    }
   });
 
   bot.on('kicked', (reason, loggedIn) => {
@@ -207,23 +217,17 @@ function makeBot(name) {
   });
 
   bot.on('death', () => {
-    console.log(`[${name}] Died; trying to recover and fish again.`);
+    console.log(`[${name}] Died; re-equipping rod and continuing fishing on respawn.`);
   });
 
   bot.on('end', (reason) => {
     console.log(`[${name}] Disconnected: ${reason || 'unknown reason'}`);
+    bot.alive = false;
+    bot.fishStarted = false;
     setTimeout(() => {
       console.log(`[${name}] Reconnecting in ${RECONNECT_MS / 1000} seconds...`);
       makeBot(name);
     }, RECONNECT_MS);
-  });
-
-  bot.on('chat', (username, message) => {
-    const target = name.toLowerCase();
-    if (message && message.toLowerCase() === `${target} hi`) {
-      bot.chat(`Hello ${username}!`);
-      console.log(`[${name}] Replied to ${username}: Hello ${username}!`);
-    }
   });
 
   return bot;
