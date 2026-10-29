@@ -1,0 +1,12 @@
+{
+  "name": "mc-bots",
+  "version": "1.0.0",
+  "description": "Simple Mineflayer bots for an offline-mode Paper server",
+  "main": "bots.js",
+  "scripts": {
+    "start": "node bots.js"
+  },
+  "dependencies": {
+    "mineflayer": "latest"
+  }
+}
