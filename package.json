@@ -1,12 +1,13 @@
 {
   "name": "mc-bots",
   "version": "1.0.0",
-  "description": "Simple Mineflayer bots for an offline-mode Paper server",
+  "description": "Simple Mineflayer fishing bots for an offline-mode Paper server",
   "main": "bots.js",
   "scripts": {
     "start": "node bots.js"
   },
   "dependencies": {
-    "mineflayer": "latest"
+    "mineflayer": "^4.39.0",
+    "mineflayer-pathfinder": "latest"
   }
 }
